@@ -133,13 +133,24 @@ class LRUKReplacer {
   auto Size() -> size_t;
 
  private:
-  // TODO(student): implement me! You can replace these member variables as you like.
-  // Remove maybe_unused if you start using them.
-  [[maybe_unused]] size_t current_timestamp_{0};
-  [[maybe_unused]] size_t curr_size_{0};
-  [[maybe_unused]] size_t replacer_size_;
-  [[maybe_unused]] size_t k_;
-  std::mutex latch_;
+  // 帧的访问历史记录结构
+  struct FrameEntry {
+    std::list<size_t> history_;  // 访问时间戳历史（最新的在前）
+    bool is_evictable_{false};   // 是否可淘汰
+  };
+
+  size_t current_timestamp_{0};  // 当前时间戳
+  size_t curr_size_{0};          // 当前可淘汰的帧数量
+  size_t replacer_size_;         // 最大帧数
+  size_t k_;                     // LRU-K 的 K 值
+  
+  // frame_id -> FrameEntry 的映射
+  std::unordered_map<frame_id_t, FrameEntry> frame_map_;
+  
+  std::mutex latch_;  // 互斥锁保护数据结构
+  
+  // 辅助函数：计算帧的后退 k-距离
+  auto GetBackwardKDistance(frame_id_t frame_id) -> size_t;
 };
 
 }  // namespace bustub
