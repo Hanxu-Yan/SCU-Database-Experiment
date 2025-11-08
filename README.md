@@ -7,9 +7,9 @@
 
 ## 🛠️ 已实现功能
 2025.11.08
-- ✅ **可扩展哈希表** (Extendible Hash Table)
-- ✅ **LRU-K 页面替换算法** (LRU-K Replacer)
-- ✅ **缓冲池管理器** (Buffer Pool Manager)
+- ✅ **Extendible Hash Table** 
+- ✅ **LRU-K Replacer** 
+- ✅ **Buffer Pool Manager** 
 
 ## 🧪 测试步骤
 
@@ -33,7 +33,7 @@ make -j$(sysctl -n hw.ncpu)  # macOS
 
 ### 🧪 测试单个功能
 
-#### 例：测试可扩展哈希表 (Extendible Hash Table)
+#### 例：测试Extendible Hash Table
 
 **功能说明**：实现了一个无需预先指定大小的可扩展哈希表，用于缓冲池中页面ID和帧ID的映射。
 
@@ -96,17 +96,17 @@ make check-lint
 
 ## 📝 实现要点
 
-### 可扩展哈希表
+### Extendible Hash Table
 - 支持动态扩展，无需预设大小
 - 线程安全，使用互斥锁保护
 - 实现了桶分裂和目录扩展机制
 
-### LRU-K 替换器
+### LRU-K Replacer
 - 追踪页面的访问历史
 - 淘汰后退 k-距离最大的页面
 - 支持并发访问
 
-### 缓冲池管理器
+### Buffer Pool Manager
 - 管理内存页面和磁盘页面的交互
 - 实现页面固定/释放机制
 - 自动处理脏页写回
