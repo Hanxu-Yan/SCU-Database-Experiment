@@ -19,24 +19,24 @@ LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_fra
 
 auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
   std::scoped_lock<std::mutex> lock(latch_);
-  
+
   if (curr_size_ == 0) {
     return false;
   }
-  
+
   // 查找具有最大后退 k-距离的可淘汰帧
   frame_id_t victim_frame = -1;
   size_t max_backward_k_dist = 0;
   size_t earliest_timestamp = std::numeric_limits<size_t>::max();
-  
+
   for (auto &[fid, entry] : frame_map_) {
     if (!entry.is_evictable_) {
       continue;
     }
-    
+
     size_t backward_k_dist;
     size_t frame_earliest_ts;
-    
+
     if (entry.history_.size() < k_) {
       // 访问次数少于 k，后退 k-距离为 +inf
       backward_k_dist = std::numeric_limits<size_t>::max();
@@ -49,62 +49,61 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
       backward_k_dist = current_timestamp_ - *it;
       frame_earliest_ts = entry.history_.back();
     }
-    
+
     // 选择后退 k-距离最大的帧
     // 如果距离相同，选择最早时间戳的帧
-    if (victim_frame == -1 || 
-        backward_k_dist > max_backward_k_dist ||
+    if (victim_frame == -1 || backward_k_dist > max_backward_k_dist ||
         (backward_k_dist == max_backward_k_dist && frame_earliest_ts < earliest_timestamp)) {
       victim_frame = fid;
       max_backward_k_dist = backward_k_dist;
       earliest_timestamp = frame_earliest_ts;
     }
   }
-  
+
   if (victim_frame == -1) {
     return false;
   }
-  
+
   // 淘汰该帧
   *frame_id = victim_frame;
   frame_map_.erase(victim_frame);
   curr_size_--;
-  
+
   return true;
 }
 
 void LRUKReplacer::RecordAccess(frame_id_t frame_id) {
   std::scoped_lock<std::mutex> lock(latch_);
-  
+
   if (frame_id < 0 || static_cast<size_t>(frame_id) >= replacer_size_) {
     throw Exception("Invalid frame_id");
   }
-  
+
   current_timestamp_++;
-  
+
   // 如果帧不存在，创建新条目
   if (frame_map_.find(frame_id) == frame_map_.end()) {
     frame_map_[frame_id] = FrameEntry();
   }
-  
+
   // 在历史记录前面添加当前时间戳
   frame_map_[frame_id].history_.push_front(current_timestamp_);
 }
 
 void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
   std::scoped_lock<std::mutex> lock(latch_);
-  
+
   if (frame_id < 0 || static_cast<size_t>(frame_id) >= replacer_size_) {
     throw Exception("Invalid frame_id");
   }
-  
+
   // 如果帧不存在，直接返回
   if (frame_map_.find(frame_id) == frame_map_.end()) {
     return;
   }
-  
+
   auto &entry = frame_map_[frame_id];
-  
+
   // 更新可淘汰状态并调整大小
   if (entry.is_evictable_ && !set_evictable) {
     // 从可淘汰变为不可淘汰
@@ -119,19 +118,19 @@ void LRUKReplacer::SetEvictable(frame_id_t frame_id, bool set_evictable) {
 
 void LRUKReplacer::Remove(frame_id_t frame_id) {
   std::scoped_lock<std::mutex> lock(latch_);
-  
+
   // 如果帧不存在，直接返回
   if (frame_map_.find(frame_id) == frame_map_.end()) {
     return;
   }
-  
+
   auto &entry = frame_map_[frame_id];
-  
+
   // 如果帧不可淘汰，抛出异常
   if (!entry.is_evictable_) {
     throw Exception("Cannot remove non-evictable frame");
   }
-  
+
   // 移除帧并减少大小
   frame_map_.erase(frame_id);
   curr_size_--;
@@ -143,8 +142,6 @@ auto LRUKReplacer::Size() -> size_t {
 }
 
 }  // namespace bustub
-
-
 
 // 数据结构
 // FrameEntry: 记录每个帧的访问历史和可淘汰状态

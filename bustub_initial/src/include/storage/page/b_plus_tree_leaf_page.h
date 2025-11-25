@@ -50,7 +50,43 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   void SetNextPageId(page_id_t next_page_id);
   auto KeyAt(int index) const -> KeyType;
 
+  // Additional helper methods for B+ tree operations
+  auto ValueAt(int index) const -> ValueType;
+  void SetKeyAt(int index, const KeyType &key);
+  void SetValueAt(int index, const ValueType &value);
+
+  // Lookup: find the index of the first key >= given key using binary search
+  auto KeyIndex(const KeyType &key, const KeyComparator &comparator) const -> int;
+
+  // Lookup: find value for given key, return true if found
+  auto Lookup(const KeyType &key, ValueType *value, const KeyComparator &comparator) const -> bool;
+
+  // Insert: insert key-value pair into leaf, return size after insert
+  auto Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) -> int;
+
+  // Move half of the items to recipient (for split)
+  void MoveHalfTo(BPlusTreeLeafPage *recipient);
+
+  // Move all items to recipient (for merge)
+  void MoveAllTo(BPlusTreeLeafPage *recipient);
+
+  // Move first item to end of recipient
+  void MoveFirstToEndOf(BPlusTreeLeafPage *recipient);
+
+  // Move last item to front of recipient
+  void MoveLastToFrontOf(BPlusTreeLeafPage *recipient);
+
+  // Remove key from leaf
+  auto RemoveAndDeleteRecord(const KeyType &key, const KeyComparator &comparator) -> int;
+
+  // Get item at index
+  auto GetItem(int index) -> const MappingType &;
+
  private:
+  void CopyNFrom(MappingType *items, int size);
+  void CopyLastFrom(const MappingType &item);
+  void CopyFirstFrom(const MappingType &item);
+
   page_id_t next_page_id_;
   // Flexible array member for page data.
   MappingType array_[1];

@@ -23,6 +23,9 @@ namespace bustub {
 
 #define BPLUSTREE_TYPE BPlusTree<KeyType, ValueType, KeyComparator>
 
+// Operation type for latch crabbing
+enum class Operation { SEARCH = 0, INSERT, DELETE };
+
 /**
  * Main class providing the API for the Interactive B+ Tree.
  *
@@ -77,6 +80,29 @@ class BPlusTree {
  private:
   void UpdateRootPageId(int insert_record = 0);
 
+  // Helper functions for B+ tree operations
+  auto FindLeafPage(const KeyType &key, bool leftMost, Operation op, Transaction *transaction) -> Page *;
+  void StartNewTree(const KeyType &key, const ValueType &value);
+  auto InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction) -> bool;
+  auto Split(LeafPage *leaf_page) -> LeafPage *;
+  auto Split(InternalPage *internal_page) -> InternalPage *;
+  void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node, Transaction *transaction);
+
+  template <typename N>
+  auto CoalesceOrRedistribute(N *node, Transaction *transaction) -> bool;
+  auto AdjustRoot(BPlusTreePage *old_root_node) -> bool;
+  template <typename N>
+  void Redistribute(N *neighbor_node, N *node, InternalPage *parent, int index, bool from_left);
+  template <typename N>
+  auto Coalesce(N *neighbor_node, N *node, InternalPage *parent, int index, Transaction *transaction) -> bool;
+
+  // Concurrent helper functions
+  void UnlockUnpinPages(Transaction *transaction);
+  void UnlockPages(Transaction *transaction);
+
+  template <typename N>
+  auto IsSafe(N *node, Operation op) -> bool;
+
   /* Debug Routines for FREE!! */
   void ToGraph(BPlusTreePage *page, BufferPoolManager *bpm, std::ofstream &out) const;
 
@@ -89,6 +115,7 @@ class BPlusTree {
   KeyComparator comparator_;
   int leaf_max_size_;
   int internal_max_size_;
+  ReaderWriterLatch root_latch_;
 };
 
 }  // namespace bustub

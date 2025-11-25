@@ -83,20 +83,20 @@ auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
 template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
   std::scoped_lock<std::mutex> lock(latch_);
-  
+
   while (true) {
     size_t index = IndexOf(key);
     auto target_bucket = dir_[index];
-    
+
     // 尝试插入到桶中
     if (target_bucket->Insert(key, value)) {
       return;  // 插入成功
     }
-    
+
     // 桶已满，需要分裂
     int local_depth = target_bucket->GetDepth();
     int global_depth = GetGlobalDepthInternal();
-    
+
     // 如果局部深度等于全局深度，需要先增加全局深度
     if (local_depth == global_depth) {
       global_depth_++;
@@ -106,23 +106,23 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
         dir_.push_back(dir_[i]);
       }
     }
-    
+
     // 增加局部深度并创建新桶
     target_bucket->IncrementDepth();
     local_depth++;
-    
+
     auto new_bucket = std::make_shared<Bucket>(bucket_size_, local_depth);
     num_buckets_++;
-    
+
     // 重新分配桶中的元素
     auto &items = target_bucket->GetItems();
     std::list<std::pair<K, V>> temp_items(items.begin(), items.end());
     items.clear();
-    
+
     for (const auto &item : temp_items) {
       size_t hash_value = std::hash<K>()(item.first);
       size_t bucket_index = hash_value & ((1 << local_depth) - 1);
-      
+
       if ((bucket_index & (1 << (local_depth - 1))) == 0) {
         // 留在原桶
         target_bucket->GetItems().push_back(item);
@@ -131,7 +131,7 @@ void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
         new_bucket->GetItems().push_back(item);
       }
     }
-    
+
     // 更新目录中的指针
     // 找到所有之前指向 target_bucket 的目录项，并根据新的深度重新分配
     for (size_t i = 0; i < dir_.size(); i++) {
@@ -183,12 +183,12 @@ auto ExtendibleHashTable<K, V>::Bucket::Insert(const K &key, const V &value) -> 
       return true;
     }
   }
-  
+
   // 检查桶是否已满
   if (IsFull()) {
     return false;
   }
-  
+
   // 插入新的键值对
   list_.emplace_back(key, value);
   return true;
@@ -203,8 +203,6 @@ template class ExtendibleHashTable<int, std::list<int>::iterator>;
 
 }  // namespace bustub
 
-
-
 // 实现总结
 
 // 1. 构造函数
@@ -212,11 +210,11 @@ template class ExtendibleHashTable<int, std::list<int>::iterator>;
 
 // 2. 核心方法
 
-// Find(K, V): 
+// Find(K, V):
 // - 通过 IndexOf 计算键的哈希索引
 // - 在对应的桶中查找键值对
 
-// Insert(K, V): 
+// Insert(K, V):
 // - 尝试插入到对应的桶
 // - 如果桶满了：
 //   - 检查是否需要增加全局深度（当局部深度=全局深度时）
@@ -235,4 +233,3 @@ template class ExtendibleHashTable<int, std::list<int>::iterator>;
 
 // 4. 线程安全
 // - 所有公共方法都使用 std::scoped_lock<std::mutex> 保护
-

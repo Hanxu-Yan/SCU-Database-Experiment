@@ -41,8 +41,42 @@ class BPlusTreeInternalPage : public BPlusTreePage {
   auto KeyAt(int index) const -> KeyType;
   void SetKeyAt(int index, const KeyType &key);
   auto ValueAt(int index) const -> ValueType;
+  void SetValueAt(int index, const ValueType &value);
+
+  // Lookup: find the child pointer (page_id) for given key
+  auto Lookup(const KeyType &key, const KeyComparator &comparator) const -> ValueType;
+
+  // Find the index of the child pointer that points to given child_page_id
+  auto ValueIndex(const ValueType &value) const -> int;
+
+  // Populate new root page with old_value + new_key & new_value
+  void PopulateNewRoot(const ValueType &old_value, const KeyType &new_key, const ValueType &new_value);
+
+  // Insert new_key & new_value pair right after the pair with old_value
+  auto InsertNodeAfter(const ValueType &old_value, const KeyType &new_key, const ValueType &new_value) -> int;
+
+  // Move half of the items to recipient (for split)
+  void MoveHalfTo(BPlusTreeInternalPage *recipient, BufferPoolManager *buffer_pool_manager);
+
+  // Move all items to recipient (for merge)
+  void MoveAllTo(BPlusTreeInternalPage *recipient, const KeyType &middle_key, BufferPoolManager *buffer_pool_manager);
+
+  // Move first item to end of recipient
+  void MoveFirstToEndOf(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
+                        BufferPoolManager *buffer_pool_manager);
+
+  // Move last item to front of recipient
+  void MoveLastToFrontOf(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
+                         BufferPoolManager *buffer_pool_manager);
+
+  // Remove key & value pair at given index
+  void Remove(int index);
 
  private:
+  void CopyNFrom(MappingType *items, int size, BufferPoolManager *buffer_pool_manager);
+  void CopyLastFrom(const MappingType &pair, BufferPoolManager *buffer_pool_manager);
+  void CopyFirstFrom(const MappingType &pair, BufferPoolManager *buffer_pool_manager);
+
   // Flexible array member for page data.
   MappingType array_[1];
 };

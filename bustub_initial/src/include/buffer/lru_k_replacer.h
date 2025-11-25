@@ -143,12 +143,12 @@ class LRUKReplacer {
   size_t curr_size_{0};          // 当前可淘汰的帧数量
   size_t replacer_size_;         // 最大帧数
   size_t k_;                     // LRU-K 的 K 值
-  
+
   // frame_id -> FrameEntry 的映射
   std::unordered_map<frame_id_t, FrameEntry> frame_map_;
-  
+
   std::mutex latch_;  // 互斥锁保护数据结构
-  
+
   // 辅助函数：计算帧的后退 k-距离
   auto GetBackwardKDistance(frame_id_t frame_id) -> size_t;
 };
