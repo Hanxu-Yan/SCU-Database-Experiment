@@ -38,11 +38,13 @@ auto LRUKReplacer::Evict(frame_id_t *frame_id) -> bool {
     size_t frame_earliest_ts;
 
     if (entry.history_.size() < k_) {
+      // 这里隐式代表历史队列
       // 访问次数少于 k，后退 k-距离为 +inf
       backward_k_dist = std::numeric_limits<size_t>::max();
       // 使用最早的访问时间戳
       frame_earliest_ts = entry.history_.back();
     } else {
+      // 这里隐式代表缓存队列
       // 计算后退 k-距离：当前时间戳 - 第k次访问的时间戳
       auto it = entry.history_.begin();
       std::advance(it, k_ - 1);
