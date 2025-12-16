@@ -24,11 +24,8 @@ INDEXITERATOR_TYPE::IndexIterator(LeafPage *leaf, int index, BufferPoolManager *
 
 INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::IndexIterator(IndexIterator &&other) noexcept
-    : page_id_(other.page_id_),
-      leaf_(other.leaf_),
-      index_(other.index_),
+    : page_id_(other.page_id_),leaf_(other.leaf_),index_(other.index_),
       buffer_pool_manager_(other.buffer_pool_manager_) {
-  // Take ownership - nullify the source
   other.page_id_ = INVALID_PAGE_ID;
   other.leaf_ = nullptr;
   other.index_ = 0;

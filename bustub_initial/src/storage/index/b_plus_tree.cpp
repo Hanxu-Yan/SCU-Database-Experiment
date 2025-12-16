@@ -59,6 +59,20 @@ auto BPLUSTREE_TYPE::IsSafe(N *node, Operation op) -> bool {
   return node->GetSize() > node->GetMinSize();
 }
 
+
+// auto BPLUSTREE_TYPE::IsSafe(N *node, Operation op) -> bool {
+//   if (op == Operation::SEARCH) {return true;}
+//   if (op == Operation::INSERT) {
+//     if (node->IsLeafPage()) {return node->GetSize() < leaf_max_size_ - 1;}
+//     return node->GetSize() < internal_max_size_ - 1;
+//   }
+//   if (node->IsRootPage()) {
+//     if (node->IsLeafPage()) {return node->GetSize() > 1;}
+//     return node->GetSize() > 2;
+//   }
+//   return node->GetSize() > node->GetMinSize();
+// }
+
 /*
  * Unlock and unpin all pages stored in transaction's page set
  */
@@ -112,7 +126,8 @@ void BPLUSTREE_TYPE::UnlockPages(Transaction *transaction) {
  * @return the Page* containing the leaf page that may contain the key
  */
 INDEX_TEMPLATE_ARGUMENTS
-auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, bool leftMost, Operation op, Transaction *transaction) -> Page * {
+auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, bool leftMost, 
+  Operation op, Transaction *transaction) -> Page * {
   // For search, acquire read lock on root
   // For insert/delete, acquire write lock on root
   if (op == Operation::SEARCH) {
@@ -123,7 +138,6 @@ auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, bool leftMost, Operation o
       transaction->AddIntoPageSet(nullptr);  // Mark that we hold root latch
     }
   }
-
   if (IsEmpty()) {
     if (op == Operation::SEARCH) {
       root_latch_.RUnlock();
@@ -185,12 +199,14 @@ auto BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, bool leftMost, Operation o
     }
     
     auto *child_node = reinterpret_cast<BPlusTreePage *>(child_page->GetData());
-
+    // 读操作：用读锁，获取子节点后立即释放父节点
     if (op == Operation::SEARCH) {
       child_page->RLatch();
-      page->RUnlatch();
+      page->RUnlatch();   // 立即释放
       buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
-    } else {
+    }
+    // 写操作：用写锁，保存所有祖先到 transaction 
+    else {
       child_page->WLatch();
       // For INSERT/DELETE: always keep all ancestors locked (simpler strategy)
       // This is less concurrent but more correct
@@ -313,7 +329,7 @@ auto BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
   // If leaf is full after insert, split
   if (new_size >= leaf_max_size_) {
     auto *new_leaf = Split(leaf_page);
-    KeyType new_key = new_leaf->KeyAt(0);
+    KeyType new_key = new_leaf->KeyAt(0);// 取新叶子的第一个键（Copy-up）
     InsertIntoParent(leaf_page, new_key, new_leaf, transaction);
     buffer_pool_manager_->UnpinPage(new_leaf->GetPageId(), true);
   }
@@ -406,7 +422,7 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
   // If parent is full, split it
   if (new_size >= internal_max_size_) {
     auto *new_parent = Split(parent);
-    KeyType new_key = new_parent->KeyAt(0);
+    KeyType new_key = new_parent->KeyAt(0);//取新内部节点的第一个键（Push-up）
     InsertIntoParent(parent, new_key, new_parent, transaction);
     buffer_pool_manager_->UnpinPage(new_parent->GetPageId(), true);
   }

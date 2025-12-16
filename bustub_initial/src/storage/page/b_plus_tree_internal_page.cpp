@@ -136,12 +136,15 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertNodeAfter(const ValueType &old_value,
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient,
-                                                BufferPoolManager *buffer_pool_manager) {
+BufferPoolManager *buffer_pool_manager) {
   int start_idx = GetSize() / 2;
   int move_count = GetSize() - start_idx;
 
   recipient->CopyNFrom(array_ + start_idx, move_count, buffer_pool_manager);
   IncreaseSize(-move_count);
+  // 后半部分移到新节点
+  // Push-up: 新节点的第一个键 (KeyAt(0)) 会被推到父节点
+  // 但内部节点的 array_[0].first 本来就是无效的，所以这个键实际上"消失"了
 }
 
 /**

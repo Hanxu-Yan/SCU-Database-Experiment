@@ -168,7 +168,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveHalfTo(BPlusTreeLeafPage *recipient) {
   int move_count = GetSize() - start_idx;
 
   recipient->CopyNFrom(array_ + start_idx, move_count);
-
+  //后半部分移到新节点，第一个元素（中间键）仍然保留在新节点中
   // Update next page pointers
   recipient->SetNextPageId(GetNextPageId());
   SetNextPageId(recipient->GetPageId());
